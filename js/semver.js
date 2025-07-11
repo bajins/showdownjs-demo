@@ -35,3 +35,37 @@ function compareVersions(v1, v2) {
 
   return 0;
 }
+
+
+function markTocItems(arr) {
+  const targetStyles = new Set([
+    "html-h1",
+    "html-h2",
+    "html-h3",
+    "html-h4",
+    "html-h5"
+  ]);
+
+  function traverse(array) {
+    for (const item of array) {
+      if (item && typeof item === 'object') {
+        // 检查当前对象是否有 style 数组，并且包含目标样式
+        if (Array.isArray(item.style)) {
+          const hasTargetStyle = item.style.some(style => targetStyles.has(style));
+          if (hasTargetStyle) {
+            item.tocItem = true;
+          }
+        }
+
+        // 遍历子属性中的数组（递归）
+        for (const key in item) {
+          if (Array.isArray(item[key])) {
+            traverse(item[key]);
+          }
+        }
+      }
+    }
+  }
+
+  traverse(arr);
+}

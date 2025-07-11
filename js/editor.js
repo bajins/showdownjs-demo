@@ -344,6 +344,418 @@ window.onload = function () {
       $scope.showModal = true;
     };
 
+    $scope.newTabPreview = function () {
+        // 1. 获取目标元素
+        const original = document.getElementsByTagName("html");
+
+        // 2. 克隆该元素（包括其所有子节点）
+        const clone = original[0].cloneNode(true);
+
+        // 3. 删除某些子元素（例如 class 为 remove-me 的元素）
+        clone.querySelector("body > div.lateral-menu.ng-isolate-scope.ng-pageslide").remove();
+        clone.querySelector("body > nav").remove()
+        clone.querySelector("#editor").remove()
+        // 4. 调整某些子节点的样式
+        const ew = clone.querySelector("#editor-wrapper");
+        ew.style.width="unset";
+        ew.style.paddingTop="unset";
+        const pv = clone.querySelector("#preview");
+        pv.style.width="unset";
+        pv.style.overflowY="unset";
+        const pvd = clone.querySelector("#preview > div");
+        pvd.style.paddingBottom="20px";
+
+        // 5. 创建一个新的 HTML 字符串
+        const newHTML = clone.outerHTML;
+
+        // 6. 打开新标签页，并写入内容
+        // const newWindow = window.open("", "_blank");
+        // newWindow.document.write(newHTML);
+        // newWindow.document.close(); // 必须调用 close() 才能完成渲染
+
+        // --- 步骤 6: 在新标签页中打开 ---
+        const blob = new Blob([newHTML], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        
+        const newTab = window.open(url, '_blank');
+
+        // 好的做法是，在新标签页加载后释放URL对象，但因为无法轻易监听加载完成事件，
+        // 我们可以延迟释放，或者在某些场景下依赖浏览器在标签关闭时自动回收。
+        // 对于这里，不立即释放也通常没问题。
+        window.URL.revokeObjectURL(url);
+    };
+
+    $scope.toPdfMake = function () {
+
+      const element = document.getElementById('preview');
+      // 获取HTML内容
+      const htmlContent = element.outerHTML;
+
+      // 1. 设置中文字体
+      // pdfmake 默认不支持中文，需要配置字体。
+      pdfMake.fonts = {
+          Roboto: {
+            normal: 'Roboto-Regular.ttf',
+            bold: 'Roboto-Medium.ttf',
+            italics: 'Roboto-Italic.ttf',
+            bolditalics: 'Roboto-MediumItalic.ttf'
+          },
+          // https://github.com/pdfmake/vfs-builders
+          // https://jsfiddle.net/w0oL4zcb/1/
+          // https://github.com/adobe-fonts/source-han-sans
+          // https://www.jsdelivr.com/github
+          // 定义一个支持中文的字体
+          SourceHanSansCN: {
+            normal: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
+            bold: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
+          },
+          // 定义一个支持中文的字体
+          SourceHanSansCNVM: {
+            normal: 'SourceHanSansCN-VF.ttf',
+            bold: 'SourceHanSansCN-VF.ttf',
+            italics: 'SourceHanSansCN-VF.ttf',
+            bolditalics: 'SourceHanSansCN-VF.ttf'
+          },
+      };
+
+      // 2. 使用 html-to-pdfmake 转换
+      // https://github.com/Aymkdn/html-to-pdfmake
+      const converted = htmlToPdfmake(htmlContent);
+      // 分页符，让目录单独一页
+      // converted.unshift({ text: '', pageBreak: 'after' });
+      // 首先，放置 TOC 占位符
+      // converted.unshift({
+      //     toc: {
+      //         title: { text: '目录', style: 'tocTitle' }
+      //     }
+      // });
+
+      // 3. 调用函数来处理 content，添加 TOC 属性
+      // 我们需要处理数组中 TOC 占位符之后的内容slice(2) 会获取从第三个元素开始的所有内容
+      // markTocItems(converted);
+
+      const docDefinition = {
+          content: converted,
+          // 4. (可选) 设置默认样式，确保中文显示
+          defaultStyle: {
+              font: 'SourceHanSansCNVM'
+          }
+      }
+      // https://pdfmake.github.io/docs/0.1/getting-started/client-side/methods
+      // 5. 创建并下载PDF
+      const pdfKitDoc = pdfMake.createPdf(docDefinition);
+      // 异步调用
+      pdfKitDoc.getStream(undefined, (pdfKit) => {
+        // 大纲/书签
+        // https://pdfkit.org/docs/outline.html
+        const outline = pdfKit.outline;
+
+        // --- 核心：添加多级大纲 ---
+                    
+        // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
+        const levelTrackers = {};
+
+        // 选取所有我们关心的标题标签
+        const headers = element.querySelectorAll('h1, h2, h3, h4, h5');
+        
+        headers.forEach(header => {
+            const title = header.innerText;
+            const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
+            // --- 寻找父节点 ---
+            let parent = null;
+            // 从当前级别的上一级开始，向上寻找存在的父节点
+            for (let i = level - 1; i >= 2; i--) {
+                if (levelTrackers[i]) {
+                    parent = levelTrackers[i];
+                    break;
+                }
+            }
+            if (!parent) {
+                // 如果没有找到父节点，则使用根节点
+                parent = outline;
+            }
+            
+            // --- 添加大纲节点 ---
+            const newNode = parent.addItem(title);
+            
+            // --- 更新并清理跟踪器 ---
+            // 1. 将当前节点存入跟踪器
+            levelTrackers[level] = newNode;
+            // 2. 清除所有更深层级的跟踪器，确保层级正确
+            for (let i = level + 1; i <= 5; i++) {
+                levelTrackers[i] = null;
+            }
+        });
+
+        pdfKitDoc._flushDoc(pdfKit, function (buffer, pdfMakePages) {
+          const blob = pdfKitDoc._bufferToBlob(buffer);
+          // FileSaver.saveAs(blob, "markdown.pdf");
+          const options = {};
+          options.autoPrint = false;
+          const urlCreator = window.URL || window.webkitURL;
+          const pdfUrl = urlCreator.createObjectURL(blob);
+          pdfKitDoc._openWindow().location.href = pdfUrl;
+        });
+      });
+      // pdfKitDoc.open();
+      // pdfKitDoc.download('pdfmake-example.pdf');
+        
+    };
+
+    $scope.toJsPDF = function () {
+      // 1. 获取目标元素
+      const original = document.getElementsByTagName("html");
+
+      // 2. 克隆该元素（包括其所有子节点）
+      const clone = original[0].cloneNode(true);
+
+      // 3. 删除某些子元素（例如 class 为 remove-me 的元素）
+      clone.querySelector("body > div.lateral-menu.ng-isolate-scope.ng-pageslide").remove();
+      clone.querySelector("body > nav").remove()
+      clone.querySelector("#editor").remove()
+      // 4. 调整某些子节点的样式
+      const ew = clone.querySelector("#editor-wrapper");
+      ew.style.width="unset";
+      ew.style.paddingTop="unset";
+      const pv = clone.querySelector("#preview");
+      pv.style.width="unset";
+      pv.style.overflowY="unset";
+      const pvd = clone.querySelector("#preview > div");
+      pvd.style.paddingBottom="20px";
+      clone.querySelector("body").style.fontFamily = 'SourceHanSansCN-VF';
+
+       // 获取HTML内容
+      const element = clone;
+      element.style.fontFamily = 'SourceHanSansCN-VF';
+
+      // https://github.com/parallax/jsPDF
+      // https://github.com/niklasvh/html2canvas
+      // https://github.com/yorickshan/html2canvas-pro
+      const { jsPDF } = window.jspdf;
+
+      // const jsPDF = window.jspdf.jsPDF;
+      // const html2canvas = window.html2canvas;
+
+      /*var callAddFont = function () {
+          this.addFileToVFS('SourceHanSansCN-VF-normal.ttf', shscn_font);
+          this.addFont('SourceHanSansCN-VF-normal.ttf', 'SourceHanSansCN-VF', 'normal');
+      };
+      jsPDF.API.events.push(['addFonts', callAddFont])*/
+
+      // 'p' (portrait) 代表纵向, 'pt' 代表单位 "points", 'a4' 代表 A4 纸张
+      // const pdf = new jsPDF('p', 'pt', 'a4');
+      const bounds = element.getBoundingClientRect();
+      const correctOrientation = bounds.height > bounds.width ? 'p' : 'l';
+      const pdf = new jsPDF({
+        putOnlyUsedFonts: true,
+        // format: [bounds.height + 100, bounds.width],
+        unit: 'pt',
+        orientation: correctOrientation,
+        format: "a4"
+      });
+      // https://github.com/parallax/jsPDF/issues/2968
+      // https://peckconsulting.s3.amazonaws.com/fontconverter/fontconverter.html
+      // https://rawgit.com/MrRio/jsPDF/master/fontconverter/fontconverter.html
+      // https://raw.githack.com
+      // https://products.aspose.app/font/zh/base64/ttf
+      pdf.addFileToVFS('SourceHanSansCN-VF-normal.ttf', shscn_font);
+      pdf.addFont('SourceHanSansCN-VF-normal.ttf', 'SourceHanSansCN-VF', 'normal');
+      pdf.setFont('SourceHanSansCN-VF', 'normal');
+      console.log(pdf.getFont());
+      
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const usablePageHeight = pageHeight-20-20;
+
+      pdf.html(element, {
+        jsPDF: pdf,
+        x: 20,
+        y: 20,
+        width: 565, // A4 纸张宽度约为 595pt，减去边距
+        // width: pdf.internal.pageSize.getWidth(),
+        margin: [0, 0, 0, 0],
+        autoPaging: 'text',// 自动分页策略
+        hotfixes: ["px_scaling"],
+        /*fontFaces: [
+            {
+                family: 'SourceHanSansCN-VF',
+                src: [
+                    {
+                        url: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
+                        format: 'truetype'
+                    }
+                ]
+            }
+        ],*/
+        windowWidth: 800, // 指定html2canvas截图的窗口宽度，应与元素宽度匹配
+        html2canvas: {
+          useCORS: true,
+          allowTaint: true,
+          letterRendering: true,
+          logging: false,
+          scale: 1,
+        },
+        // callback: resolve,
+        callback: (pfd) => {
+          console.log(pfd.getFontList(), pfd.getFont(), 'callback');
+
+          // --- 核心：添加多级大纲 ---
+          const outline = pdf.outline;
+                    
+          // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
+          const levelTrackers = {};
+
+          // 选取所有我们关心的标题标签
+          const headers = element.querySelectorAll('h1, h2, h3, h4, h5');
+          
+          headers.forEach(header => {
+              const title = header.innerText;
+              const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
+              
+              // --- 动态估算页码 ---
+              // 获取元素相对于 #contentToPrint 的顶部偏移量
+              const offsetTop = header.offsetTop; 
+              // 估算页码。这是一个简化模型，实际分页可能因内容断行而异
+              const pageNumber = Math.floor(offsetTop / usablePageHeight) + 1;
+
+              // --- 寻找父节点 ---
+              let parent = null;
+              // 从当前级别的上一级开始，向上寻找存在的父节点
+              for (let i = level - 1; i >= 2; i--) {
+                  if (levelTrackers[i]) {
+                      parent = levelTrackers[i];
+                      break;
+                  }
+              }
+              
+              // --- 添加大纲节点 ---
+              const newNode = outline.add(parent, title, { pageNumber: pageNumber });
+              
+              // --- 更新并清理跟踪器 ---
+              // 1. 将当前节点存入跟踪器
+              levelTrackers[level] = newNode;
+              // 2. 清除所有更深层级的跟踪器，确保层级正确
+              for (let i = level + 1; i <= 5; i++) {
+                  levelTrackers[i] = null;
+              }
+          });
+          
+          // pfd.output('dataurlnewwindow');
+          window.open(pdf.output('bloburl'));
+          /*const blob = pdf.output('blob');
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.click();*/
+
+          // pdf.save("xx.pdf");
+        },
+      });
+
+    };
+
+
+    $scope.toHtml2pdf = function () {
+      // 1. 获取目标元素
+      const original = document.getElementsByTagName("html");
+
+      // 2. 克隆该元素（包括其所有子节点）
+      const clone = original[0].cloneNode(true);
+
+      // 3. 删除某些子元素（例如 class 为 remove-me 的元素）
+      clone.querySelector("body > div.lateral-menu.ng-isolate-scope.ng-pageslide").remove();
+      clone.querySelector("body > nav").remove()
+      clone.querySelector("#editor").remove()
+      // 4. 调整某些子节点的样式
+      const ew = clone.querySelector("#editor-wrapper");
+      ew.style.width="unset";
+      ew.style.paddingTop="unset";
+      const pv = clone.querySelector("#preview");
+      pv.style.width="unset";
+      pv.style.overflowY="unset";
+      const pvd = clone.querySelector("#preview > div");
+      pvd.style.paddingBottom="20px";
+
+      var opt = {
+        margin:       1,
+        filename:     'myfile.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 3 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+        enableLinks:  true,
+        pdfCallback: function(pdf) {
+          // pdf.autoPrint();
+        }
+      };
+
+      // New Promise-based usage:
+      html2pdf().set(opt).from(clone)
+      .toContainer()
+      .toCanvas()
+      .toPdf()
+      /*.output('datauristring').then(function (pdfAsString) {
+          console.log(pdfAsString);
+      })*/
+      .get('pdf').then((pdf) => {
+        console.log(pdf.getFontList(), pdf.getFont(), 'callback');
+
+        // --- 核心：添加多级大纲 ---
+        const outline = pdf.outline;
+                  
+        // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
+        const levelTrackers = {};
+
+        // 选取所有我们关心的标题标签
+        const headers = clone.querySelectorAll('h1, h2, h3, h4, h5');
+        
+        headers.forEach(header => {
+            const title = header.innerText;
+            const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
+            
+            // --- 动态估算页码 ---
+            // 获取元素相对于 #contentToPrint 的顶部偏移量
+            const offsetTop = header.offsetTop; 
+            // 估算页码。这是一个简化模型，实际分页可能因内容断行而异
+            const pageNumber = Math.floor(offsetTop / pdf.internal.pageSize.getHeight()) + 1;
+
+            // --- 寻找父节点 ---
+            let parent = null;
+            // 从当前级别的上一级开始，向上寻找存在的父节点
+            for (let i = level - 1; i >= 2; i--) {
+                if (levelTrackers[i]) {
+                    parent = levelTrackers[i];
+                    break;
+                }
+            }
+            
+            // --- 添加大纲节点 ---
+            const newNode = outline.add(parent, title, { pageNumber: pageNumber });
+            
+            // --- 更新并清理跟踪器 ---
+            // 1. 将当前节点存入跟踪器
+            levelTrackers[level] = newNode;
+            // 2. 清除所有更深层级的跟踪器，确保层级正确
+            for (let i = level + 1; i <= 5; i++) {
+                levelTrackers[i] = null;
+            }
+        });
+
+
+        window.open(pdf.output('bloburl'));
+        /*const link = document.createElement('a');
+        link.target = '_blank';
+        link.href = pdf.output('bloburl');
+        link.download = 'FileName';
+        link.click();
+        link.remove();*/
+      })
+      // .save();
+      .catch(function (error) {
+        console.log(error);
+      });
+    };
+
     $scope.closeModal = function () {
       $scope.showModal = false;
     };

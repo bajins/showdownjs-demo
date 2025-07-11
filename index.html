@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>Showdown Live Editor</title>
 
-  <link href='http://fonts.googleapis.com/css?family=Old+Standard+TT:400,400italic,700' rel='stylesheet' type='text/css'>
-  <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700,600' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Old+Standard+TT:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,600' rel='stylesheet' type='text/css'>
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/css/foundation.min.css">
   <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
   <link rel="stylesheet" type="text/css" href="css/style.css">
@@ -38,7 +38,7 @@
       }
 
       var ver = getCookie('version') || 'develop',
-          url = 'https://rawgit.com/showdownjs/showdown/' + ver + '/dist/showdown.min.js',
+          url = 'https://cdn.jsdelivr.net/gh/showdownjs/showdown@master/dist/showdown.min.js',
           scrp = document.createElement('script');
 
       scrp.setAttribute("type","text/javascript");
@@ -95,14 +95,28 @@
   </div>
   <!-- end modal -->
 
-  <script src="js/semver.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.5/angular.min.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.5/angular-sanitize.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.5/angular-animate.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.5/angular-route.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.5/angular-cookies.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-pageslide-directive/2.2.0/angular-pageslide-directive.js" integrity="sha256-FW2YsacWIn83+j6c02CWOR8fuY4WyzbmmGwz7VOdEI0=" crossorigin="anonymous"></script>
+  <!-- 引入 pdfmake 库 -->
+  <!-- 1. 核心库 -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfmake@latest/build/pdfmake.min.js"></script>
+  <!-- 2. 字体文件 (必须，用于支持非拉丁字符) -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/pdfmake@latest/build/vfs_fonts.min.js"></script> -->
+  <script src="js/source-han-sans-cn_vfs_fonts.js"></script>
+  <!-- 3. HTML转pdfmake定义库 -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-pdfmake/browser.js"></script>
 
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/cure53/DOMPurify@main/dist/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+  <script src="js/SourceHanSansCN-VF-normal.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/eKoopmans/html2pdf.js@main/dist/html2pdf.bundle.min.js"></script>
+  
+  <script src="js/semver.js"></script>
   <script src="js/editor.js"></script>
 </body>
 </html>
