@@ -344,6 +344,12 @@ window.onload = function () {
       $scope.showModal = true;
     };
 
+    $scope.toCleanRead = function () {
+      // 1. 获取目标元素
+      const original = document.getElementsByTagName("html");
+      processHtmlElements(original[0]);
+    }
+
     $scope.newTabPreview = function () {
         // 1. 获取目标元素
         const original = document.getElementsByTagName("html");
@@ -351,19 +357,7 @@ window.onload = function () {
         // 2. 克隆该元素（包括其所有子节点）
         const clone = original[0].cloneNode(true);
 
-        // 3. 删除某些子元素（例如 class 为 remove-me 的元素）
-        clone.querySelector("body > div.lateral-menu.ng-isolate-scope.ng-pageslide").remove();
-        clone.querySelector("body > nav").remove()
-        clone.querySelector("#editor").remove()
-        // 4. 调整某些子节点的样式
-        const ew = clone.querySelector("#editor-wrapper");
-        ew.style.width="unset";
-        ew.style.paddingTop="unset";
-        const pv = clone.querySelector("#preview");
-        pv.style.width="unset";
-        pv.style.overflowY="unset";
-        const pvd = clone.querySelector("#preview > div");
-        pvd.style.paddingBottom="20px";
+        processHtmlElements(clone);
 
         // 5. 创建一个新的 HTML 字符串
         const newHTML = clone.outerHTML;
