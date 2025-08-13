@@ -7,9 +7,7 @@ window.onload = function () {
 
       module
         .provider('$showdown', ngShowdown)
-        .directive('sdModelToHtml', ['$showdown', '$sanitize', '$sce', sdModelToHtmlDirective]) //<-- DEPRECATED: will be removed in the next major version release
         .directive('markdownToHtml', ['$showdown', '$sanitize', '$sce', markdownToHtmlDirective])
-        .filter('sdStripHtml', ['$showdown', stripHtmlFilter]) //<-- DEPRECATED: will be removed in the next major version release
         .filter('stripHtml', ['$showdown', stripHtmlFilter]);
 
       /**
@@ -122,7 +120,7 @@ window.onload = function () {
            *
            * @param simple
            */
-          this.getDefaultOptions = function(simple) {
+          this.getDefaultOptions = function (simple) {
             if (typeof showdown.getDefaultOptions !== 'undefined') {
               return showdown.getDefaultOptions(simple);
             } else {
@@ -135,29 +133,6 @@ window.onload = function () {
         // The object returned by service provider
         this.$get = function () {
           return new SDObject();
-        };
-      }
-
-      /**
-       * @deprecated
-       * Legacy AngularJS Directive to Md to HTML transformation
-       *
-       * Usage example:
-       * <div sd-model-to-html="markdownText" ></div>
-       *
-       * @param {showdown.Converter} $showdown
-       * @param {$sanitize} $sanitize
-       * @param {$sce} $sce
-       * @returns {*}
-       */
-      function sdModelToHtmlDirective($showdown, $sanitize, $sce) {
-        return {
-          restrict: 'A',
-          link: getLinkFn($showdown, $sanitize, $sce),
-          scope: {
-            model: '=sdModelToHtml'
-          },
-          template: '<div ng-bind-html="trustedHtml"></div>'
         };
       }
 
@@ -191,7 +166,7 @@ window.onload = function () {
               showdownHTML = $showdown.makeHtml(newValue);
               //scope.trustedHtml = ($showdown.getOption('sanitize')) ? $sanitize(showdownHTML) : $sce.trustAsHtml(showdownHTML);
               scope.trustedHtml = showdownHTML;
-              
+
             } else {
               scope.trustedHtml = typeof newValue;
             }
@@ -220,7 +195,7 @@ window.onload = function () {
 
   var app = angular.module('showdown.editor', ['ng-showdown', 'pageslide-directive', 'ngAnimate', 'ngRoute', 'ngCookies', 'ngSanitize']);
 
-  
+
   app.controller('editorCtrl', ['$scope', '$showdown', '$http', '$cookies', '$sanitize', function ($scope, $showdown, $http, $cookies, $sanitize) {
 
     $scope.versions = ['develop', 'master'];
@@ -233,105 +208,109 @@ window.onload = function () {
     $scope.checkOpts = [];
     $scope.numOpts = [];
     $scope.textOpts = [];
+    $scope.readerMode = false; // 确保应用启动时不是阅读模式
+    $scope.showExitButton = false;  // 确保阅读模式退出按钮初始为隐藏状态
 
-    var text = '';
-    var savedCheckOpts = $cookies.getObject('checkOpts') || [];
-    var savedNumOpts = $cookies.getObject('numOpts') || [];
-    var savedTextOpts = $cookies.getObject('textOpts') || [];
-    var defaultOpts = $showdown.getDefaultOptions(false);
-    var checkOpts = {
-      'omitExtraWLInCodeBlocks': true,
-      'noHeaderId': false,
-      'parseImgDimensions': true,
-      'simplifiedAutoLink': true,
-      'literalMidWordUnderscores': true,
-      'strikethrough': true,
-      'tables': true,
-      'tablesHeaderId': false,
-      'ghCodeBlocks': true,
-      'tasklists': true,
-      'smoothLivePreview': true,
-      'prefixHeaderId': false,
-      'disableForced4SpacesIndentedSublists': false,
-      'ghCompatibleHeaderId': true,
-      'smartIndentationFix': false
-    };
-    var numOpts = {
-      'headerLevelStart': 3
-    };
-    var textOpts = {};
+    {
 
-    if (defaultOpts !== null) {
-      for (var opt in defaultOpts) {
-        if (defaultOpts.hasOwnProperty(opt)) {
-          var nOpt = (defaultOpts[opt].hasOwnProperty('defaultValue')) ? defaultOpts[opt].defaultValue : true;
-          if (defaultOpts[opt].type === 'boolean') {
-            if (!checkOpts.hasOwnProperty(opt)) {
-              checkOpts[opt] = nOpt;
-            }
-          } else if (defaultOpts[opt].type === 'integer') {
-            if (!numOpts.hasOwnProperty(opt)) {
-              numOpts[opt] = nOpt;
-            }
-          } else {
-            if (!textOpts.hasOwnProperty(opt)) {
-              // fix bug in showdown's older version that specifies 'ghCompatibleHeaderId' as a string instead of boolean
-              if (opt === 'ghCompatibleHeaderId') {
-                continue;
+      var savedCheckOpts = $cookies.getObject('checkOpts') || [];
+      var savedNumOpts = $cookies.getObject('numOpts') || [];
+      var savedTextOpts = $cookies.getObject('textOpts') || [];
+      var defaultOpts = $showdown.getDefaultOptions(false);
+      var checkOpts = {
+        'omitExtraWLInCodeBlocks': true,
+        'noHeaderId': false,
+        'parseImgDimensions': true,
+        'simplifiedAutoLink': true,
+        'literalMidWordUnderscores': true,
+        'strikethrough': true,
+        'tables': true,
+        'tablesHeaderId': false,
+        'ghCodeBlocks': true,
+        'tasklists': true,
+        'smoothLivePreview': true,
+        'prefixHeaderId': false,
+        'disableForced4SpacesIndentedSublists': false,
+        'ghCompatibleHeaderId': true,
+        'smartIndentationFix': false
+      };
+      var numOpts = {
+        'headerLevelStart': 3
+      };
+      var textOpts = {};
+      if (defaultOpts !== null) {
+        for (var opt in defaultOpts) {
+          if (defaultOpts.hasOwnProperty(opt)) {
+            var nOpt = (defaultOpts[opt].hasOwnProperty('defaultValue')) ? defaultOpts[opt].defaultValue : true;
+            if (defaultOpts[opt].type === 'boolean') {
+              if (!checkOpts.hasOwnProperty(opt)) {
+                checkOpts[opt] = nOpt;
               }
-              if (!nOpt) {
-                nOpt = '';
+            } else if (defaultOpts[opt].type === 'integer') {
+              if (!numOpts.hasOwnProperty(opt)) {
+                numOpts[opt] = nOpt;
               }
-              textOpts[opt] = nOpt;
+            } else {
+              if (!textOpts.hasOwnProperty(opt)) {
+                // fix bug in showdown's older version that specifies 'ghCompatibleHeaderId' as a string instead of boolean
+                if (opt === 'ghCompatibleHeaderId') {
+                  continue;
+                }
+                if (!nOpt) {
+                  nOpt = '';
+                }
+                textOpts[opt] = nOpt;
+              }
             }
           }
         }
       }
-    }
 
-    for (opt in checkOpts) {
-      if (checkOpts.hasOwnProperty(opt)) {
-        $scope.checkOpts.push({name: opt, value: checkOpts[opt]});
-      }
-    }
-
-    for (opt in numOpts) {
-      if (numOpts.hasOwnProperty(opt)) {
-        $scope.numOpts.push({name: opt, value: numOpts[opt]});
-      }
-    }
-
-    for (opt in textOpts) {
-      if (textOpts.hasOwnProperty(opt)) {
-        $scope.textOpts.push({name: opt, value: textOpts[opt]});
-      }
-    }
-
-    for (var i = 0; i < $scope.checkOpts.length; ++i) {
-		for (var ii = 0; ii < savedCheckOpts.length; ++ii) {
-			if ($scope.checkOpts[i].name === savedCheckOpts[ii].name) {
-				$scope.checkOpts[i].value = savedCheckOpts[ii].value;
-				break;
-			}
-		}
-	}
-
-    for (i = 0; i < $scope.numOpts.length; ++i) {
-      for (ii = 0; ii < savedNumOpts.length; ++ii) {
-        if ($scope.numOpts[i].name === savedNumOpts[ii].name) {
-          $scope.numOpts[i].value = savedNumOpts[ii].value;
-          break;
+      for (opt in checkOpts) {
+        if (checkOpts.hasOwnProperty(opt)) {
+          $scope.checkOpts.push({ name: opt, value: checkOpts[opt] });
         }
       }
-    }
 
-    for (i = 0; i < $scope.textOpts.length; ++i) {
-      for (ii = 0; ii < savedTextOpts.length; ++ii) {
-        if ($scope.textOpts[i].name === savedTextOpts[ii].name) {
-          $scope.textOpts[i].value = savedTextOpts[ii].value;
-          break;
+      for (opt in numOpts) {
+        if (numOpts.hasOwnProperty(opt)) {
+          $scope.numOpts.push({ name: opt, value: numOpts[opt] });
         }
       }
+
+      for (opt in textOpts) {
+        if (textOpts.hasOwnProperty(opt)) {
+          $scope.textOpts.push({ name: opt, value: textOpts[opt] });
+        }
+      }
+
+      for (var i = 0; i < $scope.checkOpts.length; ++i) {
+        for (var ii = 0; ii < savedCheckOpts.length; ++ii) {
+          if ($scope.checkOpts[i].name === savedCheckOpts[ii].name) {
+            $scope.checkOpts[i].value = savedCheckOpts[ii].value;
+            break;
+          }
+        }
+      }
+
+      for (i = 0; i < $scope.numOpts.length; ++i) {
+        for (ii = 0; ii < savedNumOpts.length; ++ii) {
+          if ($scope.numOpts[i].name === savedNumOpts[ii].name) {
+            $scope.numOpts[i].value = savedNumOpts[ii].value;
+            break;
+          }
+        }
+      }
+
+      for (i = 0; i < $scope.textOpts.length; ++i) {
+        for (ii = 0; ii < savedTextOpts.length; ++ii) {
+          if ($scope.textOpts[i].name === savedTextOpts[ii].name) {
+            $scope.textOpts[i].value = savedTextOpts[ii].value;
+            break;
+          }
+        }
+      }
+
     }
 
     $scope.toggleMenu = function () {
@@ -345,38 +324,54 @@ window.onload = function () {
     };
 
     $scope.toCleanRead = function () {
-      // 1. 获取目标元素
-      const original = document.getElementsByTagName("html");
-      processHtmlElements(original[0]);
+      $scope.readerMode = !$scope.readerMode;
     }
 
     $scope.newTabPreview = function () {
-        // 1. 获取目标元素
-        const original = document.getElementsByTagName("html");
+      // 1. 获取目标元素
+      const original = document.getElementsByTagName("html");
 
-        // 2. 克隆该元素（包括其所有子节点）
-        const clone = original[0].cloneNode(true);
+      // 2. 克隆该元素（包括其所有子节点）
+      const clone = original[0].cloneNode(true);
 
-        processHtmlElements(clone);
+      // 3. 删除某些子元素
+      clone.querySelector(".lateral-menu").remove();
+      clone.querySelector("nav").remove()
+      clone.querySelector("#editor").remove()
+      // 4. 调整某些子节点的样式
+      const ew = clone.querySelector("#editor-wrapper"); // container
+      // ew.style.width = "unset";
+      // ew.style.height = "unset";
+      ew.classList.remove('container');
+      ew.classList.add('container-rd');
+      ew.style.padding = "3px 10px";
+      const pv = clone.querySelector("#preview"); // .container>*
+      // pv.style.width = "unset";
+      // pv.style.overflowY = "unset";
+      // pv.style.marginLeft = "unset";
+      // pv.style.marginRight = "unset";
+      pv.classList.remove('preview');
+      pv.classList.add('preview-rd');
+      pv.style.padding = "3px 10px";
 
-        // 5. 创建一个新的 HTML 字符串
-        const newHTML = clone.outerHTML;
+      // 5. 创建一个新的 HTML 字符串
+      const newHTML = clone.outerHTML;
 
-        // 6. 打开新标签页，并写入内容
-        // const newWindow = window.open("", "_blank");
-        // newWindow.document.write(newHTML);
-        // newWindow.document.close(); // 必须调用 close() 才能完成渲染
+      // 6. 打开新标签页，并写入内容
+      // const newWindow = window.open("", "_blank");
+      // newWindow.document.write(newHTML);
+      // newWindow.document.close(); // 必须调用 close() 才能完成渲染
 
-        // --- 步骤 6: 在新标签页中打开 ---
-        const blob = new Blob([newHTML], { type: 'text/html' });
-        const url = window.URL.createObjectURL(blob);
-        
-        const newTab = window.open(url, '_blank');
+      // --- 步骤 6: 在新标签页中打开 ---
+      const blob = new Blob([newHTML], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
 
-        // 好的做法是，在新标签页加载后释放URL对象，但因为无法轻易监听加载完成事件，
-        // 我们可以延迟释放，或者在某些场景下依赖浏览器在标签关闭时自动回收。
-        // 对于这里，不立即释放也通常没问题。
-        window.URL.revokeObjectURL(url);
+      const newTab = window.open(url, '_blank');
+
+      // 好的做法是，在新标签页加载后释放URL对象，但因为无法轻易监听加载完成事件，
+      // 我们可以延迟释放，或者在某些场景下依赖浏览器在标签关闭时自动回收。
+      // 对于这里，不立即释放也通常没问题。
+      window.URL.revokeObjectURL(url);
     };
 
     $scope.toPdfMake = function () {
@@ -388,28 +383,28 @@ window.onload = function () {
       // 1. 设置中文字体
       // pdfmake 默认不支持中文，需要配置字体。
       pdfMake.fonts = {
-          Roboto: {
-            normal: 'Roboto-Regular.ttf',
-            bold: 'Roboto-Medium.ttf',
-            italics: 'Roboto-Italic.ttf',
-            bolditalics: 'Roboto-MediumItalic.ttf'
-          },
-          // https://github.com/pdfmake/vfs-builders
-          // https://jsfiddle.net/w0oL4zcb/1/
-          // https://github.com/adobe-fonts/source-han-sans
-          // https://www.jsdelivr.com/github
-          // 定义一个支持中文的字体
-          SourceHanSansCN: {
-            normal: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
-            bold: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
-          },
-          // 定义一个支持中文的字体
-          SourceHanSansCNVM: {
-            normal: 'SourceHanSansCN-VF.ttf',
-            bold: 'SourceHanSansCN-VF.ttf',
-            italics: 'SourceHanSansCN-VF.ttf',
-            bolditalics: 'SourceHanSansCN-VF.ttf'
-          },
+        Roboto: {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Medium.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-MediumItalic.ttf'
+        },
+        // https://github.com/pdfmake/vfs-builders
+        // https://jsfiddle.net/w0oL4zcb/1/
+        // https://github.com/adobe-fonts/source-han-sans
+        // https://www.jsdelivr.com/github
+        // 定义一个支持中文的字体
+        SourceHanSansCN: {
+          normal: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
+          bold: 'https://cdn.jsdelivr.net/gh/adobe-fonts/source-han-sans@release/Variable/TTF/Subset/SourceHanSansCN-VF.ttf',
+        },
+        // 定义一个支持中文的字体
+        SourceHanSansCNVM: {
+          normal: 'SourceHanSansCN-VF.ttf',
+          bold: 'SourceHanSansCN-VF.ttf',
+          italics: 'SourceHanSansCN-VF.ttf',
+          bolditalics: 'SourceHanSansCN-VF.ttf'
+        },
       };
 
       // 2. 使用 html-to-pdfmake 转换
@@ -429,11 +424,11 @@ window.onload = function () {
       // markTocItems(converted);
 
       const docDefinition = {
-          content: converted,
-          // 4. (可选) 设置默认样式，确保中文显示
-          defaultStyle: {
-              font: 'SourceHanSansCNVM'
-          }
+        content: converted,
+        // 4. (可选) 设置默认样式，确保中文显示
+        defaultStyle: {
+          font: 'SourceHanSansCNVM'
+        }
       }
       // https://pdfmake.github.io/docs/0.1/getting-started/client-side/methods
       // 5. 创建并下载PDF
@@ -445,40 +440,40 @@ window.onload = function () {
         const outline = pdfKit.outline;
 
         // --- 核心：添加多级大纲 ---
-                    
+
         // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
         const levelTrackers = {};
 
         // 选取所有我们关心的标题标签
         const headers = element.querySelectorAll('h1, h2, h3, h4, h5');
-        
+
         headers.forEach(header => {
-            const title = header.innerText;
-            const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
-            // --- 寻找父节点 ---
-            let parent = null;
-            // 从当前级别的上一级开始，向上寻找存在的父节点
-            for (let i = level - 1; i >= 2; i--) {
-                if (levelTrackers[i]) {
-                    parent = levelTrackers[i];
-                    break;
-                }
+          const title = header.innerText;
+          const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
+          // --- 寻找父节点 ---
+          let parent = null;
+          // 从当前级别的上一级开始，向上寻找存在的父节点
+          for (let i = level - 1; i >= 2; i--) {
+            if (levelTrackers[i]) {
+              parent = levelTrackers[i];
+              break;
             }
-            if (!parent) {
-                // 如果没有找到父节点，则使用根节点
-                parent = outline;
-            }
-            
-            // --- 添加大纲节点 ---
-            const newNode = parent.addItem(title);
-            
-            // --- 更新并清理跟踪器 ---
-            // 1. 将当前节点存入跟踪器
-            levelTrackers[level] = newNode;
-            // 2. 清除所有更深层级的跟踪器，确保层级正确
-            for (let i = level + 1; i <= 5; i++) {
-                levelTrackers[i] = null;
-            }
+          }
+          if (!parent) {
+            // 如果没有找到父节点，则使用根节点
+            parent = outline;
+          }
+
+          // --- 添加大纲节点 ---
+          const newNode = parent.addItem(title);
+
+          // --- 更新并清理跟踪器 ---
+          // 1. 将当前节点存入跟踪器
+          levelTrackers[level] = newNode;
+          // 2. 清除所有更深层级的跟踪器，确保层级正确
+          for (let i = level + 1; i <= 5; i++) {
+            levelTrackers[i] = null;
+          }
         });
 
         pdfKitDoc._flushDoc(pdfKit, function (buffer, pdfMakePages) {
@@ -493,7 +488,7 @@ window.onload = function () {
       });
       // pdfKitDoc.open();
       // pdfKitDoc.download('pdfmake-example.pdf');
-        
+
     };
 
     $scope.toJsPDF = function () {
@@ -509,16 +504,16 @@ window.onload = function () {
       clone.querySelector("#editor").remove()
       // 4. 调整某些子节点的样式
       const ew = clone.querySelector("#editor-wrapper");
-      ew.style.width="unset";
-      ew.style.paddingTop="unset";
+      ew.style.width = "unset";
+      ew.style.paddingTop = "unset";
       const pv = clone.querySelector("#preview");
-      pv.style.width="unset";
-      pv.style.overflowY="unset";
+      pv.style.width = "unset";
+      pv.style.overflowY = "unset";
       const pvd = clone.querySelector("#preview > div");
-      pvd.style.paddingBottom="20px";
+      pvd.style.paddingBottom = "20px";
       clone.querySelector("body").style.fontFamily = 'SourceHanSansCN-VF';
 
-       // 获取HTML内容
+      // 获取HTML内容
       const element = clone;
       element.style.fontFamily = 'SourceHanSansCN-VF';
 
@@ -556,9 +551,9 @@ window.onload = function () {
       pdf.addFont('SourceHanSansCN-VF-normal.ttf', 'SourceHanSansCN-VF', 'normal');
       pdf.setFont('SourceHanSansCN-VF', 'normal');
       console.log(pdf.getFont());
-      
+
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const usablePageHeight = pageHeight-20-20;
+      const usablePageHeight = pageHeight - 20 - 20;
 
       pdf.html(element, {
         jsPDF: pdf,
@@ -594,45 +589,45 @@ window.onload = function () {
 
           // --- 核心：添加多级大纲 ---
           const outline = pdf.outline;
-                    
+
           // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
           const levelTrackers = {};
 
           // 选取所有我们关心的标题标签
           const headers = element.querySelectorAll('h1, h2, h3, h4, h5');
-          
-          headers.forEach(header => {
-              const title = header.innerText;
-              const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
-              
-              // --- 动态估算页码 ---
-              // 获取元素相对于 #contentToPrint 的顶部偏移量
-              const offsetTop = header.offsetTop; 
-              // 估算页码。这是一个简化模型，实际分页可能因内容断行而异
-              const pageNumber = Math.floor(offsetTop / usablePageHeight) + 1;
 
-              // --- 寻找父节点 ---
-              let parent = null;
-              // 从当前级别的上一级开始，向上寻找存在的父节点
-              for (let i = level - 1; i >= 2; i--) {
-                  if (levelTrackers[i]) {
-                      parent = levelTrackers[i];
-                      break;
-                  }
+          headers.forEach(header => {
+            const title = header.innerText;
+            const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
+
+            // --- 动态估算页码 ---
+            // 获取元素相对于 #contentToPrint 的顶部偏移量
+            const offsetTop = header.offsetTop;
+            // 估算页码。这是一个简化模型，实际分页可能因内容断行而异
+            const pageNumber = Math.floor(offsetTop / usablePageHeight) + 1;
+
+            // --- 寻找父节点 ---
+            let parent = null;
+            // 从当前级别的上一级开始，向上寻找存在的父节点
+            for (let i = level - 1; i >= 2; i--) {
+              if (levelTrackers[i]) {
+                parent = levelTrackers[i];
+                break;
               }
-              
-              // --- 添加大纲节点 ---
-              const newNode = outline.add(parent, title, { pageNumber: pageNumber });
-              
-              // --- 更新并清理跟踪器 ---
-              // 1. 将当前节点存入跟踪器
-              levelTrackers[level] = newNode;
-              // 2. 清除所有更深层级的跟踪器，确保层级正确
-              for (let i = level + 1; i <= 5; i++) {
-                  levelTrackers[i] = null;
-              }
+            }
+
+            // --- 添加大纲节点 ---
+            const newNode = outline.add(parent, title, { pageNumber: pageNumber });
+
+            // --- 更新并清理跟踪器 ---
+            // 1. 将当前节点存入跟踪器
+            levelTrackers[level] = newNode;
+            // 2. 清除所有更深层级的跟踪器，确保层级正确
+            for (let i = level + 1; i <= 5; i++) {
+              levelTrackers[i] = null;
+            }
           });
-          
+
           // pfd.output('dataurlnewwindow');
           window.open(pdf.output('bloburl'));
           /*const blob = pdf.output('blob');
@@ -663,53 +658,53 @@ window.onload = function () {
       clone.querySelector("#editor").remove()
       // 4. 调整某些子节点的样式
       const ew = clone.querySelector("#editor-wrapper");
-      ew.style.width="unset";
-      ew.style.paddingTop="unset";
+      ew.style.width = "unset";
+      ew.style.paddingTop = "unset";
       const pv = clone.querySelector("#preview");
-      pv.style.width="unset";
-      pv.style.overflowY="unset";
+      pv.style.width = "unset";
+      pv.style.overflowY = "unset";
       const pvd = clone.querySelector("#preview > div");
-      pvd.style.paddingBottom="20px";
+      pvd.style.paddingBottom = "20px";
 
       var opt = {
-        margin:       1,
-        filename:     'myfile.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 3 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-        enableLinks:  true,
-        pdfCallback: function(pdf) {
+        margin: 1,
+        filename: 'myfile.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 3 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        enableLinks: true,
+        pdfCallback: function (pdf) {
           // pdf.autoPrint();
         }
       };
 
       // New Promise-based usage:
       html2pdf().set(opt).from(clone)
-      .toContainer()
-      .toCanvas()
-      .toPdf()
-      /*.output('datauristring').then(function (pdfAsString) {
-          console.log(pdfAsString);
-      })*/
-      .get('pdf').then((pdf) => {
-        console.log(pdf.getFontList(), pdf.getFont(), 'callback');
+        .toContainer()
+        .toCanvas()
+        .toPdf()
+        /*.output('datauristring').then(function (pdfAsString) {
+            console.log(pdfAsString);
+        })*/
+        .get('pdf').then((pdf) => {
+          console.log(pdf.getFontList(), pdf.getFont(), 'callback');
 
-        // --- 核心：添加多级大纲 ---
-        const outline = pdf.outline;
-                  
-        // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
-        const levelTrackers = {};
+          // --- 核心：添加多级大纲 ---
+          const outline = pdf.outline;
 
-        // 选取所有我们关心的标题标签
-        const headers = clone.querySelectorAll('h1, h2, h3, h4, h5');
-        
-        headers.forEach(header => {
+          // levelTrackers 用于存储每个级别（1-5）的最新大纲节点
+          const levelTrackers = {};
+
+          // 选取所有我们关心的标题标签
+          const headers = clone.querySelectorAll('h1, h2, h3, h4, h5');
+
+          headers.forEach(header => {
             const title = header.innerText;
             const level = parseInt(header.tagName.substring(1), 10); // 从 'H2' 中获取数字 2
-            
+
             // --- 动态估算页码 ---
             // 获取元素相对于 #contentToPrint 的顶部偏移量
-            const offsetTop = header.offsetTop; 
+            const offsetTop = header.offsetTop;
             // 估算页码。这是一个简化模型，实际分页可能因内容断行而异
             const pageNumber = Math.floor(offsetTop / pdf.internal.pageSize.getHeight()) + 1;
 
@@ -717,37 +712,37 @@ window.onload = function () {
             let parent = null;
             // 从当前级别的上一级开始，向上寻找存在的父节点
             for (let i = level - 1; i >= 2; i--) {
-                if (levelTrackers[i]) {
-                    parent = levelTrackers[i];
-                    break;
-                }
+              if (levelTrackers[i]) {
+                parent = levelTrackers[i];
+                break;
+              }
             }
-            
+
             // --- 添加大纲节点 ---
             const newNode = outline.add(parent, title, { pageNumber: pageNumber });
-            
+
             // --- 更新并清理跟踪器 ---
             // 1. 将当前节点存入跟踪器
             levelTrackers[level] = newNode;
             // 2. 清除所有更深层级的跟踪器，确保层级正确
             for (let i = level + 1; i <= 5; i++) {
-                levelTrackers[i] = null;
+              levelTrackers[i] = null;
             }
+          });
+
+
+          window.open(pdf.output('bloburl'));
+          /*const link = document.createElement('a');
+          link.target = '_blank';
+          link.href = pdf.output('bloburl');
+          link.download = 'FileName';
+          link.click();
+          link.remove();*/
+        })
+        // .save();
+        .catch(function (error) {
+          console.log(error);
         });
-
-
-        window.open(pdf.output('bloburl'));
-        /*const link = document.createElement('a');
-        link.target = '_blank';
-        link.href = pdf.output('bloburl');
-        link.download = 'FileName';
-        link.click();
-        link.remove();*/
-      })
-      // .save();
-      .catch(function (error) {
-        console.log(error);
-      });
     };
 
     $scope.closeModal = function () {
@@ -794,17 +789,17 @@ window.onload = function () {
     //load available versions
     $http.get('https://api.github.com/repos/showdownjs/showdown/releases')
       .then(
-      function (response) {
-        for (var i = 0; i < response.data.length; ++i) {
-          if (compareVersions(response.data[i].tag_name, '1.0.0') >= 0) {
-            $scope.versions.push(response.data[i].tag_name);
+        function (response) {
+          for (var i = 0; i < response.data.length; ++i) {
+            if (compareVersions(response.data[i].tag_name, '1.0.0') >= 0) {
+              $scope.versions.push(response.data[i].tag_name);
+            }
           }
+        },
+        function (error) {
+          console.error('Error retrieving versions', error);
         }
-      },
-      function (error) {
-        console.error('Error retrieving versions', error);
-      }
-    );
+      );
 
     $scope.updateOptions(false);
 
@@ -819,18 +814,18 @@ window.onload = function () {
     } else {
       var defHtml = $http.get('md/text.md');
       defHtml
-        .then(function(res) {
+        .then(function (res) {
           $scope.text = res.data;
           return $http.get('//raw.githubusercontent.com/wiki/showdownjs/showdown/Showdown\'s-Markdown-syntax.md');
         })
-        .then(function(res) {
+        .then(function (res) {
           $scope.text = $scope.text + '\n\n' + res.data;
         })
         .catch(function (error) {
           $scope.text = '';
           console.log(error);
         });
-      }
+    }
   }]);
 
   angular.bootstrap(document, ['showdown.editor']);

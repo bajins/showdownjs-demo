@@ -69,22 +69,3 @@ function markTocItems(arr) {
 
   traverse(arr);
 }
-
-// 处理HTML元素
-function processHtmlElements(dom) {
-  // 3. 删除某些子元素（例如 class 为 remove-me 的元素）
-  dom.querySelector("body > div.lateral-menu.ng-isolate-scope.ng-pageslide").remove();
-  dom.querySelector("body > nav").remove()
-  dom.querySelector("#editor").remove()
-  // 4. 调整某些子节点的样式
-  const ew = dom.querySelector("#editor-wrapper");
-  ew.style.width = "unset";
-  ew.style.height = "unset";
-  ew.style.paddingTop = "1px";
-  ew.style.paddingBottom = "1px";
-  const pv = dom.querySelector("#preview");
-  pv.style.width = "unset";
-  pv.style.overflowY = "unset";
-  const pvd = dom.querySelector("#preview > div");
-  pvd.style.paddingBottom = "20px";
-}

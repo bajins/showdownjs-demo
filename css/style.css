@@ -11,26 +11,51 @@ html {
 }
 
 @keyframes squeezeBody {
-    from { width: 100%; }
-    to { width: calc(100% - 300px); }
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: calc(100% - 300px);
+    }
 }
 
 @-webkit-keyframes squeezeBody {
-    from { width: 100%; }
-    to { width: calc(100% - 300px); }
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: calc(100% - 300px);
+    }
 }
 
 @keyframes stretchBody {
-    from { width: calc(100% - 300px); }
-    to { width: 100%; }
+    from {
+        width: calc(100% - 300px);
+    }
+
+    to {
+        width: 100%;
+    }
 }
 
 @-webkit-keyframes stretchBody {
-    from { width: calc(100% - 300px); }
-    to { width: 100%; }
+    from {
+        width: calc(100% - 300px);
+    }
+
+    to {
+        width: 100%;
+    }
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: 'Old Standard TT', serif;
     font-weight: bold;
 }
@@ -91,7 +116,7 @@ h3 {
     line-height: 16px;
 }
 
-.lateral-menu-content .title{
+.lateral-menu-content .title {
     padding-top: 15px;
     font-size: 2em;
     height: 45px;
@@ -106,6 +131,17 @@ h3 {
     font-size: 0.9em;
 }
 
+.toggle-menu-close {
+    z-index: 1000;
+    position: fixed;
+    transition-duration: 0.5s;
+    height: 100%;
+    transition-property: top, bottom, left, right;
+    width: 300px;
+    top: 0px;
+    bottom: 0px;
+    left: -300px;
+}
 
 
 .container {
@@ -119,6 +155,15 @@ h3 {
     padding-top: 65px;
 }
 
+.container-rd {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: stretch;
+    padding: 3px;
+}
+
 .container>* {
     display: block;
     width: 50%;
@@ -129,13 +174,13 @@ h3 {
 
 .container textarea {
     resize: none;
-    font-family: Consolas,"Liberation Mono",Courier,monospace;
+    font-family: Consolas, "Liberation Mono", Courier, monospace;
     height: 97%;
     max-height: 97%;
     width: 45%;
 }
 
-#preview {
+.preview {
     height: 97%;
     max-height: 97%;
     border: 1px solid #eee;
@@ -144,12 +189,24 @@ h3 {
     padding: 10px;
 }
 
+.preview-rd {
+    height: 97%;
+    max-height: 97%;
+    border: 1px solid #eee;
+    padding: 3px 10px;
+}
+
 pre {
-    white-space: pre-wrap;       /* css-3 */
-    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-    white-space: -pre-wrap;      /* Opera 4-6 */
-    white-space: -o-pre-wrap;    /* Opera 7 */
-    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+    white-space: pre-wrap;
+    /* css-3 */
+    white-space: -moz-pre-wrap;
+    /* Mozilla, since 1999 */
+    white-space: -pre-wrap;
+    /* Opera 4-6 */
+    white-space: -o-pre-wrap;
+    /* Opera 7 */
+    word-wrap: break-word;
+    /* Internet Explorer 5.5+ */
     background-color: #f8f8f8;
     border: 1px solid #dfdfdf;
     margin-top: 1.5em;
@@ -171,7 +228,7 @@ pre code {
     top: 0;
     left: 0;
     z-index: 999;
-    background-color: rgba(51,51,51,0.5);
+    background-color: rgba(51, 51, 51, 0.5);
 }
 
 .modal-inner {
@@ -221,3 +278,77 @@ pre code {
     color: white;
     font-size: 0.8em !important;
 }
+
+/* ========== 阅读模式样式start ========== */
+
+/* 
+  给阅读模式下的主容器设置相对定位，
+  这样我们的绝对定位子元素才会相对于它来定位。
+*/
+#editor-wrapper.container-rd {
+    position: relative;
+}
+
+/* 
+  这是鼠标悬浮的热区，我们把它放在右上角。
+  它本身是透明的，但可以捕获鼠标事件。
+*/
+.reader-mode-hover-area {
+    position: fixed;
+    top: 0;
+    right: 0;
+    /* 热区宽度 */
+    width: 20px;
+    /* 热区高度 */
+    height: 20px;
+    /* 确保它在最上层 */
+    z-index: 1001;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 0.5rem;
+}
+
+/* 
+  退出按钮的样式。
+  Foundation框架已经提供了 .button .tiny .alert 样式，
+  我们也可以添加一些微调。
+*/
+.exit-reader-button {
+    align-items: center;
+
+    /* 2. 控制图标大小 */
+    /* 这是 'X' 的大小，你可以调整这个值 */
+    font-size: 20px;
+
+    /* 3. 使用 padding 创建圆形边距，并用 aspect-ratio 保证是正方形 */
+    /* 这是 'X' 图标到圆形边缘的距离，是关键控制参数 */
+    padding: 2px;
+    /* 强制元素的宽高比为1:1，确保它在应用padding后仍是正方形 */
+    aspect-ratio: 1 / 1;
+
+    /* 4. 创建圆形和美化外观 */
+    /* 将正方形变为圆形 */
+    border-radius: 50%;
+    /* 半透明背景 */
+    background-color: rgba(0, 0, 0, 0.5);
+    border: none;
+    /* 图标颜色 */
+    color: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+
+    /* 5. 交互效果 */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+/* 鼠标悬浮时的样式 */
+.exit-reader-button:hover {
+    /* 悬浮时变为更深的红色，增加交互感 */
+    background-color: rgba(179, 176, 176, 0.6);
+    /* 稍微放大 */
+    transform: scale(1.15);
+}
+
+/* ========== 阅读模式样式end ========== */
