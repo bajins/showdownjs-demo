@@ -31,26 +31,6 @@
   <meta name="msapplication-TileColor" content="#2b5797">
   <meta name="msapplication-TileImage" content="img/mstile-144x144.png">
   <meta name="theme-color" content="#ffffff">
-
-  <!-- conditional load of showdown's version based on the cookie -->
-  <script>
-    (function () {
-      function getCookie(name) {
-        var value = "; " + document.cookie;
-        var parts = value.split("; " + name + "=");
-        if (parts.length === 2) return parts.pop().split(";").shift();
-      }
-
-      var ver = getCookie('version') || 'develop',
-        url = 'https://cdn.jsdelivr.net/gh/showdownjs/showdown@master/dist/showdown.min.js',
-        scrp = document.createElement('script');
-
-      scrp.setAttribute("type", "text/javascript");
-      scrp.src = url;
-      document.getElementsByTagName("head")[0].appendChild(scrp);
-    })();
-  </script>
-
 </head>
 
 <body data-ng-controller="editorCtrl">
@@ -118,7 +98,8 @@
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-route.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-cookies.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-pageslide-directive/2.2.0/angular-pageslide-directive.js"
-    integrity="sha256-FW2YsacWIn83+j6c02CWOR8fuY4WyzbmmGwz7VOdEI0=" crossorigin="anonymous"></script>
+  integrity="sha256-FW2YsacWIn83+j6c02CWOR8fuY4WyzbmmGwz7VOdEI0=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/gh/showdownjs/showdown@master/dist/showdown.min.js"></script>
   <!-- 引入 pdfmake 库 -->
   <!-- 1. 核心库 -->
   <script src="https://cdn.jsdelivr.net/npm/pdfmake@latest/build/pdfmake.min.js"></script>

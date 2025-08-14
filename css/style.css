@@ -244,14 +244,12 @@ pre code {
 
 .modal-close-btn {
     float: right;
-    display: inline-block;
     margin-right: 5px;
     color: #ff4336;
 }
 
 .modal-close-btn:hover {
     float: right;
-    display: inline-block;
     margin-right: 5px;
     color: #8d0002;
 }
